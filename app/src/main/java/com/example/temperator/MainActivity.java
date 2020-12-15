@@ -16,9 +16,16 @@ import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
 import org.json.JSONObject;
+import androidx.appcompat.app.AlertDialog;
+import androidx.appcompat.app.AppCompatActivity;
+
+import android.content.Context;
+import android.content.DialogInterface;
+import android.os.Bundle;
 
 public class MainActivity extends AppCompatActivity {
 
+    Context context;
     ImageView imageViewIcone;
     TextView textViewTemperature, textViewCondition;
     EditText editText;
@@ -28,13 +35,14 @@ public class MainActivity extends AppCompatActivity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        this.context = this;
 
         imageViewIcone = findViewById(R.id.imageViewIcone);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewCondition = findViewById(R.id.textViewCondition);
         editText = findViewById(R.id.editText);
 
-        findViewById(R.id.button).setOnClickListener(v -> {
+        findViewById(R.id.search).setOnClickListener(v -> {
             RequestQueue queue = Volley.newRequestQueue(this);
 
             url = "https://www.prevision-meteo.ch/services/json/" + editText.getText().toString();
@@ -63,5 +71,22 @@ public class MainActivity extends AppCompatActivity {
                     error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
             queue.add(stringRequest);
         });
+    }
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setMessage("Voulez vous vraiment quitter ?")
+                .setTitle("Attention !")
+                .setPositiveButton("Continuer", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        System.exit(0);
+                        dialog.dismiss();
+                    }
+                }).setNegativeButton("Annuler", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        }).show();
     }
 }

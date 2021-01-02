@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "160869891096",
+    "project_id": "temperator-91af5",
+    "storage_bucket": "temperator-91af5.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:160869891096:android:a42960e80a089e4f77d76d",
+        "android_client_info": {
+          "package_name": "com.example.temperator"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "160869891096-0lrhkm6eemecu4kb44rar0iemolkg6fd.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB1PZFYhIlR7r7l2BzHk_MsM_7G2xboa3U"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "160869891096-0lrhkm6eemecu4kb44rar0iemolkg6fd.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

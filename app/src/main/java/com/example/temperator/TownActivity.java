@@ -3,8 +3,10 @@ package com.example.temperator;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
+import android.widget.ArrayAdapter;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.ListView;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
@@ -35,6 +37,8 @@ public class TownActivity extends AppCompatActivity {
         addTown = findViewById(R.id.addTown);
         nameTown = findViewById(R.id.textEditCity);
         db = FirebaseFirestore.getInstance();
+        ListView list = (ListView)findViewById(R.id.listview);
+        ArrayAdapter<String> tableau = new ArrayAdapter<>(list.getContext(), R.layout.city, R.id.button);
 
         db.collection("cities")
                 .get()
@@ -44,9 +48,9 @@ public class TownActivity extends AppCompatActivity {
                         if (task.isSuccessful()) {
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 nbCities += 1;
-                                Log.d("app", document.getId() + " => " + document.getData());
-                                Log.d("TAG", "" + nbCities);
+                                tableau.add(document.getString("city"));
                             }
+                            list.setAdapter(tableau);
                         } else {
                             Log.w("app", "Error getting documents.", task.getException());
                         }
@@ -68,20 +72,21 @@ public class TownActivity extends AppCompatActivity {
                         public void onComplete(@NonNull Task<QuerySnapshot> task) {
                             if (task.isSuccessful()) {
                                 for (QueryDocumentSnapshot document : task.getResult()) {
-                                    if(document.getData().containsValue(town)){
+                                    if (document.getData().containsValue(town)) {
                                         present = true;
                                     }
                                 }
-                                if(present == false){
+                                if (present == false) {
                                     Map<String, Object> city = new HashMap<>();
                                     city.put("city", town);
                                     db.collection("cities")
                                             .document("city" + nbCities)
                                             .set(city);
                                     nbCities += 1;
+                                    tableau.add(town);
                                 }
-                            }
-                            else {
+                                list.setAdapter(tableau);
+                            } else {
                                 Log.w("app", "Error getting documents.", task.getException());
                             }
                         }

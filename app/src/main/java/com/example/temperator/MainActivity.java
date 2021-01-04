@@ -1,6 +1,12 @@
 package com.example.temperator;
 
+import android.Manifest;
 import android.content.Intent;
+import android.content.pm.PackageManager;
+import android.location.Address;
+import android.location.Geocoder;
+import android.location.Location;
+import android.location.LocationManager;
 import android.os.Bundle;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -20,18 +26,24 @@ import org.json.JSONObject;
 
 import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
+import androidx.core.app.ActivityCompat;
 
 import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 
+import java.util.List;
+import java.util.Locale;
+
 public class MainActivity extends AppCompatActivity {
 
     ImageView imageViewIcone;
-    TextView textViewTemperature, textViewCondition;
+    TextView textViewTemperature, textViewCondition, textViewNameTown;
     EditText editText;
     String url;
     Context context;
+    Double latitude, longitude;
+    Location gps_loc = null, network_loc = null, final_loc = null;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -42,7 +54,8 @@ public class MainActivity extends AppCompatActivity {
         imageViewIcone = findViewById(R.id.imageViewIcone);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewCondition = findViewById(R.id.textViewCondition);
-        editText = findViewById(R.id.editText);
+        textViewNameTown = findViewById(R.id.textViewNameTown);
+        RequestQueue queue = Volley.newRequestQueue(this);
 
         findViewById(R.id.settings).setOnClickListener(v -> {
             Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
@@ -54,35 +67,72 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
-        findViewById(R.id.backTown).setOnClickListener(v -> {
-            RequestQueue queue = Volley.newRequestQueue(this);
+        LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
+        if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
+            Toast.makeText(this, "La localisation a été bloqué", Toast.LENGTH_SHORT).show();
+        try {
+            assert locationManager != null;
+            gps_loc = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+            network_loc = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
 
-            url = "https://www.prevision-meteo.ch/services/json/" + editText.getText().toString();
-            StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                    response -> {
-                        try {
-                            JSONObject jsonObject = new JSONObject(response);
+        if (gps_loc != null) {
+            final_loc = gps_loc;
+            latitude = final_loc.getLatitude();
+            longitude = final_loc.getLongitude();
+        } else if (network_loc != null) {
+            final_loc = network_loc;
+            latitude = final_loc.getLatitude();
+            longitude = final_loc.getLongitude();
+        } else {
+            latitude = 0.0;
+            longitude = 0.0;
+        }
 
-                            // current_condition
-                            JSONObject current_condition = jsonObject.getJSONObject("current_condition");
-                            String icone = current_condition.getString("icon_big");
-                            String tmp = current_condition.getString("tmp");
-                            String condition = current_condition.getString("condition");
+        try {
+            Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.getDefault());
+            List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
+            if (addresses != null) {
+                String city = addresses.get(0).getLocality();
 
-                            Picasso.get().load(icone).into(imageViewIcone);
-                            textViewTemperature.setText("Temperature : " + tmp);
-                            textViewCondition.setText(condition);
+                url = "https://www.prevision-meteo.ch/services/json/" + city;
+                StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                        response -> {
+                            try {
+                                JSONObject jsonObject = new JSONObject(response);
+
+                                // current_condition
+                                JSONObject current_condition = jsonObject.getJSONObject("current_condition");
+                                String icone = current_condition.getString("icon_big");
+                                String tmp = current_condition.getString("tmp");
+                                String condition = current_condition.getString("condition");
+
+                                Picasso.get().load(icone).into(imageViewIcone);
+                                textViewTemperature.setText("Temperature : " + tmp);
+                                textViewCondition.setText(condition);
 
 
-                        } catch (JSONException e) {
-                            e.printStackTrace();
-                            Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
-                        }
-                    },
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                                Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
+                            }
+                        },
 
-                    error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
-            queue.add(stringRequest);
-        });
+                        error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
+                queue.add(stringRequest);
+
+                textViewNameTown.setText(city);
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+
+
+
+
     }
 
     @Override

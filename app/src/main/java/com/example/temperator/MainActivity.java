@@ -51,6 +51,7 @@ public class MainActivity extends AppCompatActivity {
         setContentView(R.layout.activity_main);
         this.context = this;
 
+        Intent intentFromTown = getIntent();
         imageViewIcone = findViewById(R.id.imageViewIcone);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewCondition = findViewById(R.id.textViewCondition);
@@ -66,6 +67,38 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(getApplicationContext(), TownActivity.class);
             startActivity(intent);
         });
+
+        if (intentFromTown != null) {
+            if (intentFromTown.hasExtra("cityClicked")) {
+                String city = intentFromTown.getStringExtra("cityClicked");
+                textViewNameTown.setText(city);
+                url = "https://www.prevision-meteo.ch/services/json/" + city;
+                StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                        response -> {
+                            try {
+                                JSONObject jsonObject = new JSONObject(response);
+
+                                // current_condition
+                                JSONObject current_condition = jsonObject.getJSONObject("current_condition");
+                                String icone = current_condition.getString("icon_big");
+                                String tmp = current_condition.getString("tmp");
+                                String condition = current_condition.getString("condition");
+
+                                Picasso.get().load(icone).into(imageViewIcone);
+                                textViewTemperature.setText("Temperature : " + tmp + " °C");
+                                textViewCondition.setText(condition);
+
+
+                            } catch (JSONException e) {
+                                e.printStackTrace();
+                                Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
+                            }
+                        },
+
+                        error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
+                queue.add(stringRequest);
+            }
+        }
 
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
@@ -128,10 +161,6 @@ public class MainActivity extends AppCompatActivity {
         } catch (Exception e) {
             e.printStackTrace();
         }
-
-
-
-
 
     }
 

@@ -27,6 +27,7 @@ public class TownActivity extends AppCompatActivity {
     Button addTown;
     EditText nameTown;
     FirebaseFirestore db;
+    String nameCityToSend;
 
     private int nbCities = 0;
     private Boolean present = false;
@@ -38,6 +39,7 @@ public class TownActivity extends AppCompatActivity {
 
         addTown = findViewById(R.id.addTown);
         nameTown = findViewById(R.id.textEditCity);
+        nameCityToSend = "";
         db = FirebaseFirestore.getInstance();
         ListView list = (ListView)findViewById(R.id.listview);
         ArrayAdapter<String> tableau = new ArrayAdapter<>(list.getContext(), R.layout.city, R.id.textView);
@@ -97,6 +99,35 @@ public class TownActivity extends AppCompatActivity {
 
         list.setOnItemClickListener((parent, view, position, id) -> {
             Log.d("TAG", "" + position);
+            db.collection("cities")
+                    .get()
+                    .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                        @Override
+                        public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                            if (task.isSuccessful()) {
+                                int number = 0;
+                                for (QueryDocumentSnapshot document : task.getResult()) {
+                                    if (number == position) {
+                                        Log.d("TAG", "" + number + "    " + position);
+                                        nameCityToSend = document.getString("city");
+                                    }
+                                    number += 1;
+                                }
+                                changeActivity(nameCityToSend);
+                            } else {
+                                Log.w("app", "Error getting documents.", task.getException());
+                            }
+                        }
+                    });
+            Log.d("appli", "ici : " + nameCityToSend);
         });
+    }
+
+    private void changeActivity(String nameCityToSend) {
+        if(nameCityToSend != ""){
+            Intent intent = new Intent(this, MainActivity.class);
+            intent.putExtra("cityClicked", nameCityToSend);
+            startActivity(intent);
+        }
     }
 }

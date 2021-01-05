@@ -19,6 +19,8 @@ import com.google.firebase.firestore.QuerySnapshot;
 
 import java.util.HashMap;
 import java.util.Map;
+import android.view.View;
+import android.widget.Toast;
 
 public class TownActivity extends AppCompatActivity {
 
@@ -38,7 +40,7 @@ public class TownActivity extends AppCompatActivity {
         nameTown = findViewById(R.id.textEditCity);
         db = FirebaseFirestore.getInstance();
         ListView list = (ListView)findViewById(R.id.listview);
-        ArrayAdapter<String> tableau = new ArrayAdapter<>(list.getContext(), R.layout.city, R.id.button);
+        ArrayAdapter<String> tableau = new ArrayAdapter<>(list.getContext(), R.layout.city, R.id.textView);
 
         db.collection("cities")
                 .get()
@@ -91,6 +93,10 @@ public class TownActivity extends AppCompatActivity {
                             }
                         }
                     });
+        });
+
+        list.setOnItemClickListener((parent, view, position, id) -> {
+            Log.d("TAG", "" + position);
         });
     }
 }

@@ -42,16 +42,6 @@ public class SettingsActivity extends AppCompatActivity {
                     @Override
                     public void onComplete(@NonNull Task<QuerySnapshot> task) {
                         if (task.isSuccessful()) {
-                            Log.d("app", "" + task.getResult().size());
-                            if(task.getResult().size() == 0){
-                                temperature.setText("°F");
-                                temperatureSelected.setText("Température seléctionnée en °C");
-                                Map<String, Object> temp = new HashMap<>();
-                                temp.put("temperature", "°C");
-                                db.collection("temperature")
-                                        .document("temperature")
-                                        .set(temp);
-                            }
                             for (QueryDocumentSnapshot document : task.getResult()) {
                                 if (document.getData().containsValue("°C")){
                                     temperature.setText("°F");

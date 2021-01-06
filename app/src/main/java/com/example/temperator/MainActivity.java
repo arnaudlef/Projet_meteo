@@ -8,17 +8,24 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.NonNull;
 import androidx.appcompat.app.AppCompatActivity;
 
 import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
+import com.google.android.gms.tasks.OnCompleteListener;
+import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.QueryDocumentSnapshot;
+import com.google.firebase.firestore.QuerySnapshot;
 import com.squareup.picasso.Picasso;
 
 import org.json.JSONException;
@@ -32,8 +39,10 @@ import android.content.Context;
 import android.content.DialogInterface;
 import android.os.Bundle;
 
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -41,9 +50,12 @@ public class MainActivity extends AppCompatActivity {
     TextView textViewTemperature, textViewCondition, textViewNameTown;
     EditText editText;
     String url;
+    String variableTemp;
     Context context;
     Double latitude, longitude;
     Location gps_loc = null, network_loc = null, final_loc = null;
+    FirebaseFirestore db;
+    double temperature;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -57,6 +69,8 @@ public class MainActivity extends AppCompatActivity {
         textViewCondition = findViewById(R.id.textViewCondition);
         textViewNameTown = findViewById(R.id.textViewNameTown);
         RequestQueue queue = Volley.newRequestQueue(this);
+        variableTemp = "°C";
+        db = FirebaseFirestore.getInstance();
 
         findViewById(R.id.settings).setOnClickListener(v -> {
             Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
@@ -67,6 +81,30 @@ public class MainActivity extends AppCompatActivity {
             Intent intent = new Intent(getApplicationContext(), TownActivity.class);
             startActivity(intent);
         });
+
+        db.collection("temperature")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            if(task.getResult().size() == 0){
+                                Map<String, Object> temp = new HashMap<>();
+                                temp.put("temperature", "°C");
+                                db.collection("temperature")
+                                        .document("temperature")
+                                        .set(temp);
+                            }
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                if (document.getData().containsValue("°F")){
+                                    variableTemp = "°F";
+                                }
+                            }
+                        } else {
+                            Log.w("app", "Error getting documents.", task.getException());
+                        }
+                    }
+                });
 
         if (intentFromTown != null) {
             if (intentFromTown.hasExtra("cityClicked")) {
@@ -81,11 +119,18 @@ public class MainActivity extends AppCompatActivity {
                                 // current_condition
                                 JSONObject current_condition = jsonObject.getJSONObject("current_condition");
                                 String icone = current_condition.getString("icon_big");
-                                String tmp = current_condition.getString("tmp");
+                                Integer tmp = current_condition.getInt("tmp");
                                 String condition = current_condition.getString("condition");
 
+                                if(variableTemp == "°F"){
+                                    temperature = (tmp*1.8)+32;
+                                }
+                                else{
+                                    temperature = tmp;
+                                }
+
                                 Picasso.get().load(icone).into(imageViewIcone);
-                                textViewTemperature.setText("Temperature : " + tmp + " °C");
+                                textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
                                 textViewCondition.setText(condition);
 
 
@@ -139,11 +184,18 @@ public class MainActivity extends AppCompatActivity {
                                 // current_condition
                                 JSONObject current_condition = jsonObject.getJSONObject("current_condition");
                                 String icone = current_condition.getString("icon_big");
-                                String tmp = current_condition.getString("tmp");
+                                Integer tmp = current_condition.getInt("tmp");
                                 String condition = current_condition.getString("condition");
 
+                                if(variableTemp == "°F"){
+                                    temperature = (tmp*1.8)+32;
+                                }
+                                else{
+                                    temperature = tmp;
+                                }
+
                                 Picasso.get().load(icone).into(imageViewIcone);
-                                textViewTemperature.setText("Temperature : " + tmp);
+                                textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
                                 textViewCondition.setText(condition);
 
 

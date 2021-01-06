@@ -8,6 +8,7 @@ import android.location.Geocoder;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.provider.Settings;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.ImageView;
@@ -56,6 +57,8 @@ public class MainActivity extends AppCompatActivity {
     Location gps_loc = null, network_loc = null, final_loc = null;
     FirebaseFirestore db;
     double temperature;
+    String finalCity;
+    int index;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,9 +175,9 @@ public class MainActivity extends AppCompatActivity {
         try {
             Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.getDefault());
             List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
-            if (addresses != null) {
+            if (addresses != null && addresses.size() != 0) {
+                Log.d("Nop", "onCreate: " + addresses.size());
                 String city = addresses.get(0).getLocality();
-
                 url = "https://www.prevision-meteo.ch/services/json/" + city;
                 StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
                         response -> {
@@ -210,6 +213,29 @@ public class MainActivity extends AppCompatActivity {
 
                 textViewNameTown.setText(city);
             }
+            else{
+                finalCity = "";
+                index = 0;
+                db.collection("cities")
+                        .get()
+                        .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                            @Override
+                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                if (task.isSuccessful()) {
+                                    for (QueryDocumentSnapshot document : task.getResult()) {
+                                        if (index == 0){
+                                            finalCity = document.getString("city");
+                                            setCity(finalCity);
+                                        }
+                                        index += 1;
+                                    }
+
+                                } else {
+                                    Log.w("app", "Error getting documents.", task.getException());
+                                }
+                            }
+                        });
+            }
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -231,5 +257,42 @@ public class MainActivity extends AppCompatActivity {
                 dialog.dismiss();
             }
         }).show();
+    }
+
+    private void setCity(String finalCity) {
+        RequestQueue queue = Volley.newRequestQueue(this);
+        textViewNameTown.setText(finalCity);
+        url = "https://www.prevision-meteo.ch/services/json/" + finalCity;
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                response -> {
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+
+                        // current_condition
+                        JSONObject current_condition = jsonObject.getJSONObject("current_condition");
+                        String icone = current_condition.getString("icon_big");
+                        Integer tmp = current_condition.getInt("tmp");
+                        String condition = current_condition.getString("condition");
+
+                        if(variableTemp == "°F"){
+                            temperature = (tmp*1.8)+32;
+                        }
+                        else{
+                            temperature = tmp;
+                        }
+
+                        Picasso.get().load(icone).into(imageViewIcone);
+                        textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
+                        textViewCondition.setText(condition);
+
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
+                    }
+                },
+
+                error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
+        queue.add(stringRequest);
     }
 }

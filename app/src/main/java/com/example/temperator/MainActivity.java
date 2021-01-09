@@ -148,7 +148,16 @@ public class MainActivity extends AppCompatActivity {
                                         for (QueryDocumentSnapshot document : task.getResult()) {
                                             if (index == 0){
                                                 finalCity = document.getString("city");
+
                                                 setCity(finalCity);
+
+                                                String city_widget = finalCity.substring(0, 1).toUpperCase() + finalCity.substring(1);
+
+                                                AppWidgetManager appwidgetManager = AppWidgetManager.getInstance(context);
+                                                RemoteViews remoteViews = new RemoteViews( context. getPackageName(), R.layout.temperator);
+                                                ComponentName thisWidget = new ComponentName(context, Temperator.class);
+                                                remoteViews.setTextViewText (R.id.appwidgetTemperature, city_widget + ": " + tmp + "°C");
+                                                appwidgetManager.updateAppWidget(thisWidget, remoteViews);
                                             }
                                             index += 1;
                                         }

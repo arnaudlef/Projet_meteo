@@ -67,12 +67,11 @@ public class MainActivity extends AppCompatActivity {
         this.context = this;
 
         Intent intentFromTown = getIntent();
+        RequestQueue queue = Volley.newRequestQueue(this);
         imageViewIcone = findViewById(R.id.imageViewIcone);
         textViewTemperature = findViewById(R.id.textViewTemperature);
         textViewCondition = findViewById(R.id.textViewCondition);
         textViewNameTown = findViewById(R.id.textViewNameTown);
-        RequestQueue queue = Volley.newRequestQueue(this);
-        variableTemp = "°C";
         db = FirebaseFirestore.getInstance();
 
         findViewById(R.id.settings).setOnClickListener(v -> {
@@ -85,6 +84,131 @@ public class MainActivity extends AppCompatActivity {
             startActivity(intent);
         });
 
+        boolean getData = getDataGPS();
+        if(!getData){
+            if (intentFromTown != null) {
+                setTemp();
+                if (intentFromTown.hasExtra("cityClicked")) {
+                    Log.d("azreazrazreazr", "onCreate: " + variableTemp);
+                    String city = intentFromTown.getStringExtra("cityClicked");
+                    textViewNameTown.setText(city);
+                    url = "https://www.prevision-meteo.ch/services/json/" + city;
+                    StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                            response -> {
+                                try {
+                                    JSONObject jsonObject = new JSONObject(response);
+
+                                    // current_condition
+                                    JSONObject current_condition = jsonObject.getJSONObject("current_condition");
+                                    String icone = current_condition.getString("icon_big");
+                                    Integer tmp = current_condition.getInt("tmp");
+                                    String condition = current_condition.getString("condition");
+
+                                    if(variableTemp == "°F"){
+                                        temperature = (tmp*1.8)+32;
+                                    }
+                                    else{
+                                        temperature = tmp;
+                                    }
+
+                                    Picasso.get().load(icone).into(imageViewIcone);
+                                    textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
+                                    textViewCondition.setText(condition);
+
+
+                                } catch (JSONException e) {
+                                    e.printStackTrace();
+                                    Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
+                                }
+                            },
+
+                            error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
+                    queue.add(stringRequest);
+                }
+                else{
+                    finalCity = "";
+                    index = 0;
+                    db.collection("cities")
+                            .get()
+                            .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                @Override
+                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                    if (task.isSuccessful()) {
+                                        for (QueryDocumentSnapshot document : task.getResult()) {
+                                            if (index == 0){
+                                                finalCity = document.getString("city");
+                                                setCity(finalCity);
+                                            }
+                                            index += 1;
+                                        }
+
+                                    } else {
+                                        Log.w("app", "Error getting documents.", task.getException());
+                                    }
+                                }
+                            });
+                }
+            }
+        }
+
+    }
+
+    @Override
+    public void onBackPressed() {
+        AlertDialog.Builder builder = new AlertDialog.Builder(context);
+        builder.setMessage("Voulez vous vraiment quitter ?")
+                .setTitle("Attention !")
+                .setPositiveButton("Continuer", new DialogInterface.OnClickListener() {
+                    public void onClick(DialogInterface dialog, int which) {
+                        System.exit(0);
+                        dialog.dismiss();
+                    }
+                }).setNegativeButton("Annuler", new DialogInterface.OnClickListener() {
+            public void onClick(DialogInterface dialog, int which) {
+                dialog.dismiss();
+            }
+        }).show();
+    }
+
+    private void setCity(String finalCity) {
+        RequestQueue queue = Volley.newRequestQueue(this);
+        textViewNameTown.setText(finalCity);
+        url = "https://www.prevision-meteo.ch/services/json/" + finalCity;
+        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
+                response -> {
+                    try {
+                        JSONObject jsonObject = new JSONObject(response);
+
+                        // current_condition
+                        JSONObject current_condition = jsonObject.getJSONObject("current_condition");
+                        String icone = current_condition.getString("icon_big");
+                        Integer tmp = current_condition.getInt("tmp");
+                        String condition = current_condition.getString("condition");
+
+                        if(variableTemp == "°F"){
+                            temperature = (tmp*1.8)+32;
+                        }
+                        else{
+                            temperature = tmp;
+                        }
+
+                        Picasso.get().load(icone).into(imageViewIcone);
+                        textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
+                        textViewCondition.setText(condition);
+
+
+                    } catch (JSONException e) {
+                        e.printStackTrace();
+                        Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
+                    }
+                },
+
+                error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
+        queue.add(stringRequest);
+    }
+
+    String setTemp(){
+        String valueReturned = "";
         db.collection("temperature")
                 .get()
                 .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
@@ -102,52 +226,21 @@ public class MainActivity extends AppCompatActivity {
                                 if (document.getData().containsValue("°F")){
                                     variableTemp = "°F";
                                 }
+                                else if (document.getData().containsValue("°C")){
+                                    variableTemp = "°C";
+                                }
                             }
                         } else {
                             Log.w("app", "Error getting documents.", task.getException());
                         }
                     }
                 });
+        valueReturned = variableTemp;
+        return valueReturned;
+    }
 
-        if (intentFromTown != null) {
-            if (intentFromTown.hasExtra("cityClicked")) {
-                String city = intentFromTown.getStringExtra("cityClicked");
-                textViewNameTown.setText(city);
-                url = "https://www.prevision-meteo.ch/services/json/" + city;
-                StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                        response -> {
-                            try {
-                                JSONObject jsonObject = new JSONObject(response);
-
-                                // current_condition
-                                JSONObject current_condition = jsonObject.getJSONObject("current_condition");
-                                String icone = current_condition.getString("icon_big");
-                                Integer tmp = current_condition.getInt("tmp");
-                                String condition = current_condition.getString("condition");
-
-                                if(variableTemp == "°F"){
-                                    temperature = (tmp*1.8)+32;
-                                }
-                                else{
-                                    temperature = tmp;
-                                }
-
-                                Picasso.get().load(icone).into(imageViewIcone);
-                                textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
-                                textViewCondition.setText(condition);
-
-
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                                Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
-                            }
-                        },
-
-                        error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
-                queue.add(stringRequest);
-            }
-        }
-
+    boolean getDataGPS(){
+        RequestQueue queue = Volley.newRequestQueue(this);
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
             Toast.makeText(this, "La localisation a été bloqué", Toast.LENGTH_SHORT).show();
@@ -212,87 +305,15 @@ public class MainActivity extends AppCompatActivity {
                 queue.add(stringRequest);
 
                 textViewNameTown.setText(city);
+
+                return true;
             }
             else{
-                finalCity = "";
-                index = 0;
-                db.collection("cities")
-                        .get()
-                        .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                            @Override
-                            public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                if (task.isSuccessful()) {
-                                    for (QueryDocumentSnapshot document : task.getResult()) {
-                                        if (index == 0){
-                                            finalCity = document.getString("city");
-                                            setCity(finalCity);
-                                        }
-                                        index += 1;
-                                    }
-
-                                } else {
-                                    Log.w("app", "Error getting documents.", task.getException());
-                                }
-                            }
-                        });
+                return false;
             }
         } catch (Exception e) {
             e.printStackTrace();
+            return false;
         }
-
-    }
-
-    @Override
-    public void onBackPressed() {
-        AlertDialog.Builder builder = new AlertDialog.Builder(context);
-        builder.setMessage("Voulez vous vraiment quitter ?")
-                .setTitle("Attention !")
-                .setPositiveButton("Continuer", new DialogInterface.OnClickListener() {
-                    public void onClick(DialogInterface dialog, int which) {
-                        System.exit(0);
-                        dialog.dismiss();
-                    }
-                }).setNegativeButton("Annuler", new DialogInterface.OnClickListener() {
-            public void onClick(DialogInterface dialog, int which) {
-                dialog.dismiss();
-            }
-        }).show();
-    }
-
-    private void setCity(String finalCity) {
-        RequestQueue queue = Volley.newRequestQueue(this);
-        textViewNameTown.setText(finalCity);
-        url = "https://www.prevision-meteo.ch/services/json/" + finalCity;
-        StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                response -> {
-                    try {
-                        JSONObject jsonObject = new JSONObject(response);
-
-                        // current_condition
-                        JSONObject current_condition = jsonObject.getJSONObject("current_condition");
-                        String icone = current_condition.getString("icon_big");
-                        Integer tmp = current_condition.getInt("tmp");
-                        String condition = current_condition.getString("condition");
-
-                        if(variableTemp == "°F"){
-                            temperature = (tmp*1.8)+32;
-                        }
-                        else{
-                            temperature = tmp;
-                        }
-
-                        Picasso.get().load(icone).into(imageViewIcone);
-                        textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
-                        textViewCondition.setText(condition);
-
-
-                    } catch (JSONException e) {
-                        e.printStackTrace();
-                        Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
-                    }
-                },
-
-                error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
-        queue.add(stringRequest);
     }
 }

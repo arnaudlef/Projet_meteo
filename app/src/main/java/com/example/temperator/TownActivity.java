@@ -98,7 +98,6 @@ public class TownActivity extends AppCompatActivity {
         });
 
         list.setOnItemClickListener((parent, view, position, id) -> {
-            Log.d("TAG", "" + position);
             db.collection("cities")
                     .get()
                     .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {

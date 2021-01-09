@@ -1,6 +1,8 @@
 package com.example.temperator;
 
 import android.Manifest;
+import android.appwidget.AppWidgetManager;
+import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
 import android.location.Address;
@@ -12,6 +14,7 @@ import android.provider.Settings;
 import android.util.Log;
 import android.widget.EditText;
 import android.widget.ImageView;
+import android.widget.RemoteViews;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -114,6 +117,14 @@ public class MainActivity extends AppCompatActivity {
                                     Picasso.get().load(icone).into(imageViewIcone);
                                     textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
                                     textViewCondition.setText(condition);
+
+                                    String city_widget = city.substring(0, 1).toUpperCase() + city.substring(1);
+
+                                    AppWidgetManager appwidgetManager = AppWidgetManager.getInstance(context);
+                                    RemoteViews remoteViews = new RemoteViews( context. getPackageName(), R.layout.temperator);
+                                    ComponentName thisWidget = new ComponentName(context, Temperator.class);
+                                    remoteViews.setTextViewText (R.id.appwidgetTemperature, city_widget + ": " + tmp + "°C");
+                                    appwidgetManager.updateAppWidget(thisWidget, remoteViews);
 
 
                                 } catch (JSONException e) {

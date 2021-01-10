@@ -14,6 +14,8 @@ Sur la page d'ajout de ville, il est possible de rentrer une nouvelle ville ou d
 
 Enfin, il est possible d'ajouter un widget météo sur la page d'accueil du téléphone en appuyant longement sur le fond d'écran du téléphone puis en sélectionnant "widget" et enfin en sélectionnant le widget de l'application Temperator.
 
+PS - Il se peut que le GPS ne fonctionne pas avec le GPS factice.
+
 
 
 Voilà, Bonne année et à bientôt.

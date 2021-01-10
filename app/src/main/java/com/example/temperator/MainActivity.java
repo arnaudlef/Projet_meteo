@@ -5,6 +5,7 @@ import android.appwidget.AppWidgetManager;
 import android.content.ComponentName;
 import android.content.Intent;
 import android.content.pm.PackageManager;
+import android.graphics.Color;
 import android.location.Address;
 import android.location.Geocoder;
 import android.location.Location;
@@ -12,6 +13,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.provider.Settings;
 import android.util.Log;
+import android.widget.Button;
 import android.widget.EditText;
 import android.widget.ImageView;
 import android.widget.RemoteViews;
@@ -27,7 +29,9 @@ import com.android.volley.toolbox.StringRequest;
 import com.android.volley.toolbox.Volley;
 import com.google.android.gms.tasks.OnCompleteListener;
 import com.google.android.gms.tasks.Task;
+import com.google.firebase.firestore.CollectionReference;
 import com.google.firebase.firestore.FirebaseFirestore;
+import com.google.firebase.firestore.Query;
 import com.google.firebase.firestore.QueryDocumentSnapshot;
 import com.google.firebase.firestore.QuerySnapshot;
 import com.squareup.picasso.Picasso;
@@ -48,11 +52,11 @@ import java.util.List;
 import java.util.Locale;
 import java.util.Map;
 
+
 public class MainActivity extends AppCompatActivity {
 
     ImageView imageViewIcone;
     TextView textViewTemperature, textViewCondition, textViewNameTown;
-    EditText editText;
     String url;
     String variableTemp;
     Context context;
@@ -62,6 +66,7 @@ public class MainActivity extends AppCompatActivity {
     double temperature;
     String finalCity;
     int index;
+    Button settings, addCity;
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -76,101 +81,68 @@ public class MainActivity extends AppCompatActivity {
         textViewCondition = findViewById(R.id.textViewCondition);
         textViewNameTown = findViewById(R.id.textViewNameTown);
         db = FirebaseFirestore.getInstance();
+        settings = findViewById(R.id.settings);
+        addCity = findViewById(R.id.addCity);
 
-        findViewById(R.id.settings).setOnClickListener(v -> {
+        settings.setOnClickListener(v -> {
             Intent intent = new Intent(getApplicationContext(), SettingsActivity.class);
             startActivity(intent);
         });
 
-        findViewById(R.id.addCity).setOnClickListener(v -> {
+        addCity.setOnClickListener(v -> {
             Intent intent = new Intent(getApplicationContext(), TownActivity.class);
             startActivity(intent);
         });
 
-        boolean getData = getDataGPS();
-        if(!getData){
-            if (intentFromTown != null) {
-                setTemp();
-                if (intentFromTown.hasExtra("cityClicked")) {
-                    Log.d("azreazrazreazr", "onCreate: " + variableTemp);
+        try {
+            variableTemp = "°C";
+
+            try {
+                if(intentFromTown.hasExtra("cityClicked")){
                     String city = intentFromTown.getStringExtra("cityClicked");
+                    Log.d("eeeeeeeeeeee", "onCreate: " + city);
                     textViewNameTown.setText(city);
-                    url = "https://www.prevision-meteo.ch/services/json/" + city;
-                    StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                            response -> {
-                                try {
-                                    JSONObject jsonObject = new JSONObject(response);
-
-                                    // current_condition
-                                    JSONObject current_condition = jsonObject.getJSONObject("current_condition");
-                                    String icone = current_condition.getString("icon_big");
-                                    Integer tmp = current_condition.getInt("tmp");
-                                    String condition = current_condition.getString("condition");
-
-                                    if(variableTemp == "°F"){
-                                        temperature = (tmp*1.8)+32;
-                                    }
-                                    else{
-                                        temperature = tmp;
-                                    }
-
-                                    Picasso.get().load(icone).into(imageViewIcone);
-                                    textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
-                                    textViewCondition.setText(condition);
-
-                                    String city_widget = city.substring(0, 1).toUpperCase() + city.substring(1);
-
-                                    AppWidgetManager appwidgetManager = AppWidgetManager.getInstance(context);
-                                    RemoteViews remoteViews = new RemoteViews( context. getPackageName(), R.layout.temperator);
-                                    ComponentName thisWidget = new ComponentName(context, Temperator.class);
-                                    remoteViews.setTextViewText (R.id.appwidgetTemperature, city_widget + ": " + tmp + "°C");
-                                    appwidgetManager.updateAppWidget(thisWidget, remoteViews);
-
-
-                                } catch (JSONException e) {
-                                    e.printStackTrace();
-                                    Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
-                                }
-                            },
-
-                            error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
-                    queue.add(stringRequest);
+                    setTemp(city);
                 }
                 else{
-                    finalCity = "";
-                    index = 0;
-                    db.collection("cities")
-                            .get()
-                            .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                                @Override
-                                public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                                    if (task.isSuccessful()) {
-                                        for (QueryDocumentSnapshot document : task.getResult()) {
-                                            if (index == 0){
-                                                finalCity = document.getString("city");
-
-                                                setCity(finalCity);
-
-                                                String city_widget = finalCity.substring(0, 1).toUpperCase() + finalCity.substring(1);
-
-                                                AppWidgetManager appwidgetManager = AppWidgetManager.getInstance(context);
-                                                RemoteViews remoteViews = new RemoteViews( context. getPackageName(), R.layout.temperator);
-                                                ComponentName thisWidget = new ComponentName(context, Temperator.class);
-                                                remoteViews.setTextViewText (R.id.appwidgetTemperature, city_widget + ": " + tmp + "°C");
-                                                appwidgetManager.updateAppWidget(thisWidget, remoteViews);
+                    String cityLocated = getDataGPS();
+                    if (cityLocated != null){
+                        setTemp(cityLocated);
+                    }
+                    else{
+                        finalCity = "";
+                        index = 0;
+                        db.collection("cities")
+                                .get()
+                                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                                    @Override
+                                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                                        if (task.isSuccessful()) {
+                                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                                if (index == 0){
+                                                    finalCity = document.getString("city");
+                                                    Log.d("zzzzzzzzzzzz", "onCreate: " + finalCity);
+                                                    setTemp(finalCity);
+                                                }
+                                                index += 1;
                                             }
-                                            index += 1;
+                                        } else {
+                                            Log.w("app", "Error getting documents.", task.getException());
                                         }
-
-                                    } else {
-                                        Log.w("app", "Error getting documents.", task.getException());
                                     }
-                                }
-                            });
+                                });
+                    }
+
                 }
             }
-        }
+            catch (Exception e){
+                e.printStackTrace();
+            }
 
+        }
+        catch (Exception e){
+            e.printStackTrace();
+        }
     }
 
     @Override
@@ -190,7 +162,37 @@ public class MainActivity extends AppCompatActivity {
         }).show();
     }
 
-    private void setCity(String finalCity) {
+    private void setTemp(String finalCity){
+        db.collection("temperature")
+                .get()
+                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
+                    @Override
+                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
+                        if (task.isSuccessful()) {
+                            if(task.getResult().size() == 0){
+                                Map<String, Object> temp = new HashMap<>();
+                                temp.put("temperature", "°C");
+                                db.collection("temperature")
+                                        .document("temperature")
+                                        .set(temp);
+                                setCity(finalCity, "°C");
+                            }
+                            for (QueryDocumentSnapshot document : task.getResult()) {
+                                if (document.getData().containsValue("°F")){
+                                    setCity(finalCity, "°F");
+                                }
+                                else if (document.getData().containsValue("°C")){
+                                    setCity(finalCity, "°C");
+                                }
+                            }
+                        } else {
+                            Log.w("app", "Error getting documents.", task.getException());
+                        }
+                    }
+                });
+    }
+
+    private void setCity(String finalCity, String temp) {
         RequestQueue queue = Volley.newRequestQueue(this);
         textViewNameTown.setText(finalCity);
         url = "https://www.prevision-meteo.ch/services/json/" + finalCity;
@@ -205,17 +207,59 @@ public class MainActivity extends AppCompatActivity {
                         Integer tmp = current_condition.getInt("tmp");
                         String condition = current_condition.getString("condition");
 
-                        if(variableTemp == "°F"){
+                        if(temp == "°F"){
                             temperature = (tmp*1.8)+32;
                         }
                         else{
                             temperature = tmp;
                         }
 
+                        if(condition.toLowerCase().contains("nuit")){
+                            if(condition.toLowerCase().contains("nuit nuageuse")) {
+                                findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.nuit_nuageuse);
+                                setColorLight();
+                            }
+                            else if(condition.toLowerCase().contains("nuit claire")){
+                                findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.nuit_claire);
+                                setColorLight();
+                            }
+                            else if(condition.toLowerCase().contains("orage")){
+                                findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.orage);
+                                setColorLight();
+                            }
+                        }
+                        else if(condition.toLowerCase().contains("orage")){
+                            findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.orage);
+                            setColorLight();
+                        }
+                        else if(condition.toLowerCase().contains("nuage")){
+                            findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.quelques_nuages);
+                            setColorDark();
+                        }
+                        else if(condition.toLowerCase().contains("soleil")){
+                            findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.soleil);
+                            setColorDark();
+                        }
+                        else if(condition.toLowerCase().contains("neige")){
+                            findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.neige);
+                            setColorDark();
+                        }
+                        else if(condition.toLowerCase().contains("pluie")){
+                            findViewById(R.id.mainActivity).setBackgroundResource(R.drawable.pluie);
+                            setColorDark();
+                        }
+
                         Picasso.get().load(icone).into(imageViewIcone);
-                        textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
+                        textViewTemperature.setText("Temperature : " + temperature + " " + temp);
                         textViewCondition.setText(condition);
 
+                        String city_widget = finalCity.substring(0, 1).toUpperCase() + finalCity.substring(1);
+
+                        AppWidgetManager appwidgetManager = AppWidgetManager.getInstance(context);
+                        RemoteViews remoteViews = new RemoteViews( context. getPackageName(), R.layout.temperator);
+                        ComponentName thisWidget = new ComponentName(context, Temperator.class);
+                        remoteViews.setTextViewText (R.id.appwidgetTemperature, city_widget + ": " + temperature + temp);
+                        appwidgetManager.updateAppWidget(thisWidget, remoteViews);
 
                     } catch (JSONException e) {
                         e.printStackTrace();
@@ -227,40 +271,7 @@ public class MainActivity extends AppCompatActivity {
         queue.add(stringRequest);
     }
 
-    String setTemp(){
-        String valueReturned = "";
-        db.collection("temperature")
-                .get()
-                .addOnCompleteListener(new OnCompleteListener<QuerySnapshot>() {
-                    @Override
-                    public void onComplete(@NonNull Task<QuerySnapshot> task) {
-                        if (task.isSuccessful()) {
-                            if(task.getResult().size() == 0){
-                                Map<String, Object> temp = new HashMap<>();
-                                temp.put("temperature", "°C");
-                                db.collection("temperature")
-                                        .document("temperature")
-                                        .set(temp);
-                            }
-                            for (QueryDocumentSnapshot document : task.getResult()) {
-                                if (document.getData().containsValue("°F")){
-                                    variableTemp = "°F";
-                                }
-                                else if (document.getData().containsValue("°C")){
-                                    variableTemp = "°C";
-                                }
-                            }
-                        } else {
-                            Log.w("app", "Error getting documents.", task.getException());
-                        }
-                    }
-                });
-        valueReturned = variableTemp;
-        return valueReturned;
-    }
-
-    boolean getDataGPS(){
-        RequestQueue queue = Volley.newRequestQueue(this);
+    public String getDataGPS(){
         LocationManager locationManager = (LocationManager) getSystemService(Context.LOCATION_SERVICE);
         if (ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION) != PackageManager.PERMISSION_GRANTED && ActivityCompat.checkSelfPermission(this, Manifest.permission.ACCESS_COARSE_LOCATION) != PackageManager.PERMISSION_GRANTED)
             Toast.makeText(this, "La localisation a été bloqué", Toast.LENGTH_SHORT).show();
@@ -289,51 +300,32 @@ public class MainActivity extends AppCompatActivity {
             Geocoder geocoder = new Geocoder(getApplicationContext(), Locale.getDefault());
             List<Address> addresses = geocoder.getFromLocation(latitude, longitude, 1);
             if (addresses != null && addresses.size() != 0) {
-                Log.d("Nop", "onCreate: " + addresses.size());
                 String city = addresses.get(0).getLocality();
-                url = "https://www.prevision-meteo.ch/services/json/" + city;
-                StringRequest stringRequest = new StringRequest(Request.Method.GET, url,
-                        response -> {
-                            try {
-                                JSONObject jsonObject = new JSONObject(response);
 
-                                // current_condition
-                                JSONObject current_condition = jsonObject.getJSONObject("current_condition");
-                                String icone = current_condition.getString("icon_big");
-                                Integer tmp = current_condition.getInt("tmp");
-                                String condition = current_condition.getString("condition");
-
-                                if(variableTemp == "°F"){
-                                    temperature = (tmp*1.8)+32;
-                                }
-                                else{
-                                    temperature = tmp;
-                                }
-
-                                Picasso.get().load(icone).into(imageViewIcone);
-                                textViewTemperature.setText("Temperature : " + temperature + " " + variableTemp);
-                                textViewCondition.setText(condition);
-
-
-                            } catch (JSONException e) {
-                                e.printStackTrace();
-                                Toast.makeText(this, "Erreur, La ville n'a pas été trouvé", Toast.LENGTH_SHORT).show();
-                            }
-                        },
-
-                        error -> Toast.makeText(this, "Erreur", Toast.LENGTH_SHORT).show());
-                queue.add(stringRequest);
-
-                textViewNameTown.setText(city);
-
-                return true;
+                return city;
             }
             else{
-                return false;
+                return null;
             }
         } catch (Exception e) {
             e.printStackTrace();
-            return false;
+            return null;
         }
+    }
+
+    public void setColorLight(){
+        textViewNameTown.setTextColor(Color.parseColor("#ffffff"));
+        textViewTemperature.setTextColor(Color.parseColor("#ffffff"));
+        textViewCondition.setTextColor(Color.parseColor("#ffffff"));
+        settings.setBackgroundResource(R.drawable.ic_baseline_settings_24);
+        addCity.setBackgroundResource(R.drawable.ic_baseline_format_list_bulleted_24);
+    }
+
+    public void setColorDark(){
+        textViewNameTown.setTextColor(Color.parseColor("#000000"));
+        textViewTemperature.setTextColor(Color.parseColor("#000000"));
+        textViewCondition.setTextColor(Color.parseColor("#000000"));
+        settings.setBackgroundResource(R.drawable.ic_baseline_settings_24_2);
+        addCity.setBackgroundResource(R.drawable.ic_baseline_format_list_bulleted_24_2);
     }
 }

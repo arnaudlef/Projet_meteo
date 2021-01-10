@@ -1,10 +1,9 @@
 <?xml version="1.0" encoding="utf-8"?>
-<androidx.constraintlayout.widget.ConstraintLayout xmlns:android="http://schemas.android.com/apk/res/android"
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:app="http://schemas.android.com/apk/res-auto"
     xmlns:tools="http://schemas.android.com/tools"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:gravity="center"
     android:orientation="vertical"
     tools:context=".TownActivity">
 
@@ -13,54 +12,36 @@
         android:layout_width="45dp"
         android:layout_height="45dp"
         android:layout_marginEnd="20dp"
-        android:layout_marginTop="80dp"
-        android:layout_marginStart="346dp"
-        android:layout_marginBottom="608dp"
+        android:layout_marginTop="20dp"
         android:background="@drawable/ic_baseline_arrow_forward_24"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.0"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"/>
 
     <Button
         android:id="@+id/addTown"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginTop="43dp"
-        android:layout_marginEnd="47dp"
-        android:layout_marginBottom="515dp"
         android:text="Ajouter"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintStart_toEndOf="@+id/textEditCity"
-        app:layout_constraintTop_toBottomOf="@+id/backTown"
-        app:layout_constraintVertical_bias="0.0" />
+        android:layout_below="@id/backTown"
+        android:layout_alignRight="@id/backTown"
+        android:layout_marginTop="100dp"/>
 
     <EditText
         android:id="@+id/textEditCity"
         android:layout_width="wrap_content"
         android:layout_height="wrap_content"
-        android:layout_marginStart="34dp"
-        android:layout_marginTop="171dp"
-        android:layout_marginEnd="32dp"
-        android:layout_marginBottom="515dp"
         android:ems="10"
         android:hint="Saisir la ville"
         android:inputType="textPersonName"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintEnd_toStartOf="@+id/addTown"
-        app:layout_constraintStart_toStartOf="parent"
-        app:layout_constraintTop_toTopOf="parent" />
+        android:layout_alignTop="@id/addTown"
+        android:layout_marginLeft="40dp"/>
 
     <LinearLayout
         android:layout_width="match_parent"
         android:layout_height="250dp"
-        android:layout_marginTop="110dp"
-        android:layout_marginBottom="155dp"
         android:orientation="vertical"
-        app:layout_constraintBottom_toBottomOf="parent"
-        app:layout_constraintTop_toBottomOf="@+id/addTown">
+        android:layout_below="@id/textEditCity"
+        android:layout_marginTop="75dp">
 
         <ListView
             android:id="@+id/listview"
@@ -68,4 +49,4 @@
             android:layout_height="match_parent" />
     </LinearLayout>
 
-</androidx.constraintlayout.widget.ConstraintLayout>
+</RelativeLayout>
